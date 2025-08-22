@@ -160,11 +160,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
+      - name: Build
+        run: |
+          dotnet build src/Brim.Binaryen/ --configuration Release
+
       - name: Pack
         run: |
-          dotnet pack src/Brim.Binaryen/Brim.Binaryen.csproj \
-            --configuration Release \
-            -o artifacts/package/release
+          dotnet pack --configuration Release -o artifacts/package/release
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
