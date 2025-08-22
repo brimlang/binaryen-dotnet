@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RuntimeIdentifiers>linux-x64;osx-arm64;osx-x64;win-x64</RuntimeIdentifiers>
+    <UseCurrentRuntimeIdentifier>true</UseCurrentRuntimeIdentifier>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Brim.Binaryen\Brim.Binaryen.csproj" />
+  </ItemGroup>
+
+  <!-- Linux -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <None Include="$(MSBuildProjectDirectory)/../../artifacts/native/linux-x64/*"
+          CopyToOutputDirectory="PreserveNewest"
+          Link="%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- macOS -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">
+    <None Include="$(MSBuildProjectDirectory)/../../artifacts/native/osx-arm64/*"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64'">
+    <None Include="$(MSBuildProjectDirectory)/../../artifacts/native/osx-x64/*"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Windows -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <None Include="$(MSBuildProjectDirectory)\..\..\artifacts\native\win-x64\*"
+          CopyToOutputDirectory="PreserveNewest"
+          Link="%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- Make wasm-opt executable on POSIX after copy (no-op on Windows). -->
+  <Target Name="MakeWasmOptExecutable" AfterTargets="Build;Publish" Condition="'$(OS)' != 'Windows_NT'">
+    <ItemGroup>
+      <_WasmOpt Include="$(OutDir)wasm-opt*"/>
+    </ItemGroup>
+    <Exec Command="chmod +x &quot;%(_WasmOpt.Identity)&quot;" IgnoreExitCode="true" />
+  </Target>
+</Project>

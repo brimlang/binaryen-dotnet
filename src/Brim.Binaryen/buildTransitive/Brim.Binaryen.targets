@@ -1,0 +1,10 @@
+<Project>
+  <!-- Ensure wasm-* tools are executable after build/publish on POSIX -->
+  <Target Name="BrimBinaryenFixExec" AfterTargets="Build;Publish" Condition="'$(OS)'!='Windows_NT'">
+    <ItemGroup>
+      <_Tools Include="$(OutDir)wasm-*"/>
+    </ItemGroup>
+    <Exec Command="chmod +x &quot;%(_Tools.Identity)&quot;" IgnoreExitCode="true"/>
+  </Target>
+</Project>
+

@@ -1,0 +1,8 @@
+This package bundles binaries from the Binaryen project (https://github.com/WebAssembly/binaryen),
+licensed under the Apache License 2.0.
+
+A copy of the Apache License 2.0 is included in the Binaryen source and available at:
+https://www.apache.org/licenses/LICENSE-2.0
+
+Upstream tag and commit for bundled binaries are recorded in UPSTREAM.txt.
+

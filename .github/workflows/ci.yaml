@@ -1,0 +1,200 @@
+name: build-test-pack-publish
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - "v*" # publish to NuGet on tags like v1.2.3
+  pull_request:
+    branches: [main]
+
+# Needed to push to GitHub Packages with GITHUB_TOKEN
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: Build native (${{ matrix.rid }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            shell: bash
+            cmd: ./eng/native/build.sh --rid linux-x64
+          - os: macos-14
+            rid: osx-arm64
+            shell: bash
+            cmd: ./eng/native/build.sh --rid osx-arm64
+          - os: macos-13
+            rid: osx-x64
+            shell: bash
+            cmd: ./eng/native/build.sh --rid osx-x64
+          - os: windows-2022
+            rid: win-x64
+            shell: pwsh
+            cmd: ./eng/native/build.ps1 -Rid win-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build native
+        shell: ${{ matrix.shell }}
+        run: ${{ matrix.cmd }}
+
+      - name: Upload native artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.rid }}
+          path: artifacts/native/${{ matrix.rid }}/
+          if-no-files-found: error
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: native
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            shell: bash
+          - os: macos-14
+            rid: osx-arm64
+            shell: bash
+          - os: macos-13
+            rid: osx-x64
+            shell: bash
+          - os: windows-2022
+            rid: win-x64
+            shell: pwsh
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Download native artifact for this RID
+        uses: actions/download-artifact@v4
+        with:
+          name: native-${{ matrix.rid }}
+          path: artifacts/native/${{ matrix.rid }}
+
+      - name: Restore
+        shell: ${{ matrix.shell }}
+        run: dotnet restore
+
+      - name: Build
+        shell: ${{ matrix.shell }}
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        shell: ${{ matrix.shell }}
+        run: |
+          dotnet test --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-${{ matrix.os }}
+          path: |
+            **/TestResults/*.trx
+            **/TestResults/*.xml
+          if-no-files-found: ignore
+
+  pack:
+    name: Pack NuGet
+    needs: [native, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Download all native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/native
+
+      - name: Normalize native artifact layout
+        shell: bash
+        run: |
+          # actions/download-artifact@v4 puts each artifact in a subdir named after the artifact
+          # We want artifacts/native/<rid>/...
+          shopt -s nullglob
+          for d in artifacts/native/native-*; do
+            rid="${d##*/native-}"
+            mkdir -p "artifacts/native/$rid"
+            rsync -a "$d/" "artifacts/native/$rid/"
+          done
+
+      - name: Pack
+        shell: bash
+        run: |
+          dotnet pack src/Brim.Binaryen/Brim.Binaryen.csproj \
+            --configuration Release \
+            --no-build \
+            -o artifacts/package/release
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts/package/release/*.nupkg
+          if-no-files-found: error
+
+  publish-gh:
+    name: Publish to GitHub Packages (on main)
+    needs: pack
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download nupkg
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkg
+          path: ./nupkg
+
+      - name: Push to GitHub Packages
+        run: |
+          dotnet nuget push "nupkg/*.nupkg" \
+            --api-key "${{ secrets.GITHUB_TOKEN }}" \
+            --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            --skip-duplicate
+
+  publish-nuget:
+    name: Publish to NuGet (on tag)
+    needs: pack
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download nupkg
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkg
+          path: ./nupkg
+
+      - name: Push to NuGet
+        run: |
+          dotnet nuget push "nupkg/*.nupkg" \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --source "https://api.nuget.org/v3/index.json" \
+            --skip-duplicate

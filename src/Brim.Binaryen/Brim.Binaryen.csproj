@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IsTrimmable>true</IsTrimmable>
+    <PublishAotSupported>true</PublishAotSupported>
+    <PackageId>Brim.Binaryen</PackageId>
+    <Description>Binaryen shared library + wasm-opt for .NET with P/Invoke bindings.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Brim.Binaryen.Tests" />
+  </ItemGroup>
+
+  <!-- Map native payloads to canonical NuGet runtime locations -->
+  <ItemGroup>
+    <None Include="../../artifacts/native/linux-x64/**" Pack="true" PackagePath="runtimes/linux-x64/native/" />
+    <None Include="../../artifacts/native/win-x64/**"   Pack="true" PackagePath="runtimes/win-x64/native/" />
+    <None Include="../../artifacts/native/osx-arm64/**" Pack="true" PackagePath="runtimes/osx-arm64/native/" />
+    <None Include="../../artifacts/native/osx-x64/**"   Pack="true" PackagePath="runtimes/osx-x64/native/" />
+    <None Include="buildTransitive/Brim.Binaryen.targets" Pack="true" PackagePath="buildTransitive/" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="" />
+    <None Include="../../THIRD-PARTY-NOTICES" Pack="true" PackagePath="" />
+    <None Include="../../UPSTREAM.txt" Pack="true" PackagePath="" />
+    <None Include="../../README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+</Project>
+
