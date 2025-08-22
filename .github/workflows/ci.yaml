@@ -1,4 +1,4 @@
-name: build-test-pack-publish
+name: ci
 
 on:
   push:
@@ -8,7 +8,6 @@ on:
   pull_request:
     branches: [main]
 
-# Needed to push to GitHub Packages with GITHUB_TOKEN
 permissions:
   contents: read
   packages: write
@@ -85,7 +84,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          global-json-file: global.json
+          global-json-path: global.json
 
       - name: Download native artifact for this RID
         uses: actions/download-artifact@v4
@@ -127,7 +126,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          global-json-file: global.json
+          global-json-path: global.json
 
       - name: Download all native artifacts
         uses: actions/download-artifact@v4
@@ -137,8 +136,6 @@ jobs:
       - name: Normalize native artifact layout
         shell: bash
         run: |
-          # actions/download-artifact@v4 puts each artifact in a subdir named after the artifact
-          # We want artifacts/native/<rid>/...
           shopt -s nullglob
           for d in artifacts/native/native-*; do
             rid="${d##*/native-}"
