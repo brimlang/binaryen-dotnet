@@ -32,9 +32,9 @@ jobs:
           - os: macos-13
             rid: osx-x64
             cmd: ./eng/native/build.sh --rid osx-x64
-          - os: windows-2022
-            rid: win-x64
-            cmd: ./eng/native/build.ps1 -Rid win-x64
+          #- os: windows-2022
+          #  rid: win-x64
+          #  cmd: ./eng/native/build.ps1 -Rid win-x64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -65,8 +65,8 @@ jobs:
             rid: osx-arm64
           - os: macos-13
             rid: osx-x64
-          - os: windows-2022
-            rid: win-x64
+          #- os: windows-2022
+          #  rid: win-x64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
