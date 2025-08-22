@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     tags:
-      - "v*" # publish to NuGet on tags like v1.2.3
+      - "v*"
   pull_request:
     branches: [main]
 
@@ -25,19 +25,15 @@ jobs:
         include:
           - os: ubuntu-latest
             rid: linux-x64
-            shell: bash
             cmd: ./eng/native/build.sh --rid linux-x64
           - os: macos-14
             rid: osx-arm64
-            shell: bash
             cmd: ./eng/native/build.sh --rid osx-arm64
           - os: macos-13
             rid: osx-x64
-            shell: bash
             cmd: ./eng/native/build.sh --rid osx-x64
           - os: windows-2022
             rid: win-x64
-            shell: pwsh
             cmd: ./eng/native/build.ps1 -Rid win-x64
     runs-on: ${{ matrix.os }}
     steps:
@@ -47,7 +43,6 @@ jobs:
           submodules: recursive
 
       - name: Build native
-        shell: ${{ matrix.shell }}
         run: ${{ matrix.cmd }}
 
       - name: Upload native artifact
@@ -66,16 +61,12 @@ jobs:
         include:
           - os: ubuntu-latest
             rid: linux-x64
-            shell: bash
           - os: macos-14
             rid: osx-arm64
-            shell: bash
           - os: macos-13
             rid: osx-x64
-            shell: bash
           - os: windows-2022
             rid: win-x64
-            shell: pwsh
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -84,7 +75,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          global-json-path: global.json
+          global-json-file: global.json
 
       - name: Download native artifact for this RID
         uses: actions/download-artifact@v4
@@ -93,15 +84,12 @@ jobs:
           path: artifacts/native/${{ matrix.rid }}
 
       - name: Restore
-        shell: ${{ matrix.shell }}
         run: dotnet restore
 
       - name: Build
-        shell: ${{ matrix.shell }}
         run: dotnet build --configuration Release --no-restore
 
       - name: Test
-        shell: ${{ matrix.shell }}
         run: |
           dotnet test --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
 
@@ -126,7 +114,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          global-json-path: global.json
+          global-json-file: global.json
 
       - name: Download all native artifacts
         uses: actions/download-artifact@v4
@@ -134,17 +122,15 @@ jobs:
           path: artifacts/native
 
       - name: Normalize native artifact layout
-        shell: bash
         run: |
           shopt -s nullglob
-          for d in artifacts/native/native-*; do
-            rid="${d##*/native-}"
-            mkdir -p "artifacts/native/$rid"
-            rsync -a "$d/" "artifacts/native/$rid/"
-          done
+            for d in artifacts/native/native-*; do
+              rid="${d##*/native-}"
+              mkdir -p "artifacts/native/$rid"
+              rsync -a "$d/" "artifacts/native/$rid/"
+            done
 
       - name: Pack
-        shell: bash
         run: |
           dotnet pack src/Brim.Binaryen/Brim.Binaryen.csproj \
             --configuration Release \
