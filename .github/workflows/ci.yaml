@@ -110,7 +110,7 @@ jobs:
 
       - name: Test
         run: |
-          dotnet test --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
+          dotnet test --configuration Release --no-build -r ${{ matrix.rid }} --logger "trx;LogFileName=test-results.trx"
 
       - name: Upload test results
         if: always()
