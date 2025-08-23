@@ -103,15 +103,26 @@ public sealed class BinaryenModule : IDisposable
   {
     ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);
 
-    // Query size first
-    nuint size = Interop.Native.BinaryenModuleWriteText(_m, IntPtr.Zero, 0);
-    if (size == 0) return string.Empty;
-
-    // Allocate and write
-    nint buf = Marshal.AllocHGlobal((nint)size);
+    // Try with a reasonable buffer size first (like the C example)
+    const int BufferSize = 8192;
+    nint buf = Marshal.AllocHGlobal(BufferSize);
     try
     {
-      nuint actualSize = Interop.Native.BinaryenModuleWriteText(_m, buf, size);
+      nuint actualSize = Interop.Native.BinaryenModuleWriteText(_m, buf, BufferSize);
+      if (actualSize == 0) return string.Empty;
+      
+      // If the result is truncated, we might need a larger buffer
+      if (actualSize >= BufferSize)
+      {
+        // Query the exact size needed
+        Marshal.FreeHGlobal(buf);
+        nuint size = Interop.Native.BinaryenModuleWriteText(_m, IntPtr.Zero, 0);
+        if (size == 0) return string.Empty;
+        
+        buf = Marshal.AllocHGlobal((nint)size);
+        actualSize = Interop.Native.BinaryenModuleWriteText(_m, buf, size);
+      }
+      
       return Marshal.PtrToStringUTF8(buf, (int)actualSize) ?? string.Empty;
     }
     finally

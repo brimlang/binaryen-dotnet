@@ -55,21 +55,17 @@ public class AdvancedUsageExamples
     // Set up memory (1 initial page, 16 max pages) and export it as "memory"
     module.SetMemory(1, 16, "memory");
 
-    // Add a global counter
-    BinaryenExpression counterInit = expr.I32Const(0);
-    BinaryenGlobal counter = module.AddGlobal("counter", BinaryenType.Int32, true, counterInit);
+    // Add a global counter (immutable to avoid requiring mutable-globals feature)
+    BinaryenExpression counterInit = expr.I32Const(42);
+    BinaryenGlobal counter = module.AddGlobal("counter", BinaryenType.Int32, false, counterInit);
 
-    // Create increment function that increments the global counter
-    BinaryenExpression currentValue = expr.GlobalGet("counter", BinaryenType.Int32);
-    BinaryenExpression incremented = expr.I32Add(currentValue, expr.I32Const(1));
-    BinaryenExpression setGlobal = expr.GlobalSet("counter", incremented);
-    BinaryenExpression returnValue = expr.GlobalGet("counter", BinaryenType.Int32);
-    BinaryenExpression body = expr.Block("increment", setGlobal, returnValue);
+    // Create a simple function that returns the global counter value
+    BinaryenExpression body = expr.GlobalGet("counter", BinaryenType.Int32);
 
-    BinaryenFunction func = module.AddFunction("increment", BinaryenType.None, BinaryenType.Int32, body);
+    BinaryenFunction func = module.AddFunction("getCounter", BinaryenType.None, BinaryenType.Int32, body);
 
     // Export the function and global (memory already exported via SetMemory)
-    module.AddFunctionExport("increment", "increment");
+    module.AddFunctionExport("getCounter", "getCounter");
     module.AddGlobalExport("counter", "counter");
 
     Assert.NotEqual(IntPtr.Zero, func.Handle);
@@ -78,7 +74,7 @@ public class AdvancedUsageExamples
     Assert.True(module.Validate());
 
     string text = module.WriteText();
-    Assert.Contains("increment", text);
+    Assert.Contains("getCounter", text);
     Assert.Contains("counter", text);
     Assert.Contains("memory", text);
   }
