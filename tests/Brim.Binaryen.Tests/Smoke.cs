@@ -174,6 +174,9 @@ public class Smoke
     module.AddFunction("test", BinaryenType.None, BinaryenType.Int32, body);
     module.AddFunctionExport("test", "test");
 
+    // Ensure module is validated before writing text
+    Assert.True(module.Validate());
+    
     string text = module.WriteText();
     Assert.NotEmpty(text);
     Assert.Contains("test", text);

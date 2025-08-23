@@ -111,6 +111,9 @@ internal static partial class Native
   [LibraryImport("binaryen")]
   internal static partial nuint BinaryenModuleWriteText(IntPtr module, IntPtr output, nuint outputSize);
 
+  [LibraryImport("binaryen")]
+  internal static partial IntPtr BinaryenModuleAllocateAndWriteText(IntPtr module);
+
   // ========== Literals ==========
 
   [StructLayout(LayoutKind.Explicit)]

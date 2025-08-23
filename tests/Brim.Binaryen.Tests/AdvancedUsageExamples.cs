@@ -52,7 +52,7 @@ public class AdvancedUsageExamples
     using BinaryenModule module = new BinaryenModule();
     ExpressionBuilder expr = module.Expressions;
 
-    // Set up memory (1 initial page, 16 max pages)
+    // Set up memory (1 initial page, 16 max pages) and export it as "memory"
     module.SetMemory(1, 16, "memory");
 
     // Add a global counter
@@ -68,10 +68,9 @@ public class AdvancedUsageExamples
 
     BinaryenFunction func = module.AddFunction("increment", BinaryenType.None, BinaryenType.Int32, body);
 
-    // Export the function and global
+    // Export the function and global (memory already exported via SetMemory)
     module.AddFunctionExport("increment", "increment");
     module.AddGlobalExport("counter", "counter");
-    module.AddMemoryExport("memory", "memory");
 
     Assert.NotEqual(IntPtr.Zero, func.Handle);
     Assert.NotEqual(IntPtr.Zero, counter.Handle);
@@ -164,8 +163,15 @@ public class AdvancedUsageExamples
     BinaryenExpression eq = expr.I32Eq(a, b);
 
     // Create a function that uses these operations
+    // Drop intermediate values since they're not used
     BinaryenExpression body = expr.Block("test_ops",
-      clz, abs, add, sub, mul, div, eq,
+      expr.Drop(clz), 
+      expr.Drop(abs), 
+      expr.Drop(add), 
+      expr.Drop(sub), 
+      expr.Drop(mul), 
+      expr.Drop(div), 
+      expr.Drop(eq),
       expr.I32Const(1) // return 1
     );
 
