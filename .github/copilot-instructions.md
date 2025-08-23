@@ -53,10 +53,10 @@ dotnet restore src/Brim.Binaryen/Brim.Binaryen.csproj
 dotnet build src/Brim.Binaryen/Brim.Binaryen.csproj
 ```
 
-### Testing (CRITICAL: Always use explicit RID)
-**NEVER run tests without specifying runtime identifier:**
+### Testing (CRITICAL: Always use explicit RID for local development)
+**For local/manual testing, NEVER run tests without specifying runtime identifier:**
 ```bash
-# Run tests - MUST include -r flag with correct RID
+# Run tests locally - MUST include -r flag with correct RID
 dotnet test tests/Brim.Binaryen.Tests -r linux-x64 --verbosity minimal
 
 # For other platforms use:
@@ -64,6 +64,8 @@ dotnet test tests/Brim.Binaryen.Tests -r linux-x64 --verbosity minimal
 # -r osx-x64      (macOS Intel)  
 # -r win-x64      (Windows)
 ```
+
+**Note:** CI workflows should NOT use explicit RID flags as they interfere with test discovery.
 
 **Test timing:** Tests complete in 5-10 seconds once native libraries are built.
 
@@ -80,7 +82,7 @@ dotnet pack src/Brim.Binaryen/Brim.Binaryen.csproj -c Release -o artifacts/packa
 
 ### ALWAYS validate changes with these steps:
 1. **Build validation:** Run the complete build sequence above
-2. **Test validation:** Run tests with explicit RID: `dotnet test tests/Brim.Binaryen.Tests -r linux-x64`
+2. **Test validation:** Run tests locally with explicit RID: `dotnet test tests/Brim.Binaryen.Tests -r linux-x64`
 3. **API validation:** Create a simple test program that creates a BinaryenModule and runs optimizations
 4. **CLI validation:** Test wasm-opt tool: `./artifacts/native/linux-x64/wasm-opt --help`
 5. **Format validation:** `dotnet format src/Brim.Binaryen/Brim.Binaryen.csproj --verify-no-changes`
@@ -109,7 +111,7 @@ Console.WriteLine($"Module serialized: {bytes.Length} bytes");
 - **Windows build issues**: The PowerShell script is untested - prefer Linux/macOS for development
 
 ### Test Issues  
-- **Tests fail with library not found**: Must use explicit RID (`-r linux-x64`) and ensure native build completed
+- **Tests fail with library not found**: Must use explicit RID (`-r linux-x64`) for local testing and ensure native build completed
 - **Tests hang**: Check that native artifacts exist in `artifacts/native/linux-x64/`
 - **Platform-specific test failures**: Use correct RID for your platform (linux-x64, osx-arm64, osx-x64, win-x64)
 
@@ -180,7 +182,7 @@ Complete first-time setup (validated sequence):
 ## CI/CD Integration Notes
 - The repository uses `.github/workflows/ci.yaml` for automated builds
 - CI builds native libraries on multiple platforms (linux-x64, osx-arm64, etc.)
-- Tests run with explicit RID specification
+- Tests run without explicit RID specification (handled automatically by CI matrix)
 - Packages are published to GitHub Packages (main branch) and NuGet.org (version tags)
 
 ## Troubleshooting

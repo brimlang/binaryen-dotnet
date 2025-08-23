@@ -6,6 +6,21 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- Explicitly detect the runtime if not set -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
+    <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('OSX')) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'Arm64'">osx-arm64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('OSX')) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) != 'Arm64'">osx-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('Windows'))">win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+  
+  <!-- Debug: Show what RuntimeIdentifier we detected -->
+  <Target Name="ShowRuntimeIdentifier" BeforeTargets="Build">
+    <Message Text="RuntimeIdentifier: $(RuntimeIdentifier)" Importance="high" />
+    <Message Text="IsOSX: $([MSBuild]::IsOSPlatform('OSX'))" Importance="high" />
+    <Message Text="ProcessArchitecture: $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString())" Importance="high" />
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
@@ -31,12 +46,14 @@
   <!-- macOS -->
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">
     <None Include="$(MSBuildProjectDirectory)/../../artifacts/native/osx-arm64/*"
-          CopyToOutputDirectory="PreserveNewest" />
+          CopyToOutputDirectory="PreserveNewest"
+          Link="%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64'">
     <None Include="$(MSBuildProjectDirectory)/../../artifacts/native/osx-x64/*"
-          CopyToOutputDirectory="PreserveNewest" />
+          CopyToOutputDirectory="PreserveNewest"
+          Link="%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- Windows -->
