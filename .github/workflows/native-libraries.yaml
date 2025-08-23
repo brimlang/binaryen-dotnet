@@ -1,0 +1,197 @@
+name: Build Native Libraries
+
+on:
+  workflow_dispatch:
+    inputs:
+      binaryen_version:
+        description: 'Binaryen version tag (e.g., version_123)'
+        required: true
+        default: 'version_123'
+        type: string
+  schedule:
+    # Run monthly to check for new binaryen versions
+    - cron: '0 0 1 * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-version:
+    name: Check if release needed
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+      binaryen_version: ${{ steps.check.outputs.binaryen_version }}
+      release_tag: ${{ steps.check.outputs.release_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Check version and existing release
+        id: check
+        run: |
+          # Get the binaryen version from workflow input or from submodule
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BINARYEN_VERSION="${{ github.event.inputs.binaryen_version }}"
+          else
+            cd extern/binaryen
+            BINARYEN_VERSION=$(git describe --tags --exact-match HEAD 2>/dev/null || echo "unknown")
+          fi
+          
+          echo "binaryen_version=$BINARYEN_VERSION" >> $GITHUB_OUTPUT
+          
+          RELEASE_TAG="binaryen-$BINARYEN_VERSION"
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          
+          # Check if release already exists
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists, skipping build"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "Release $RELEASE_TAG does not exist, will build"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    name: Build native (${{ matrix.rid }})
+    needs: check-version
+    if: needs.check-version.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            cmd: ./eng/native/build.sh --rid linux-x64
+          - os: macos-14
+            rid: osx-arm64
+            cmd: ./eng/native/build.sh --rid osx-arm64
+          - os: macos-13
+            rid: osx-x64
+            cmd: ./eng/native/build.sh --rid osx-x64
+          - os: windows-2022
+            rid: win-x64
+            cmd: ./eng/native/build.ps1 -Rid win-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Checkout specific binaryen version
+        run: |
+          cd extern/binaryen
+          git checkout ${{ needs.check-version.outputs.binaryen_version }}
+
+      - name: Cache CMake build
+        uses: actions/cache@v3
+        with:
+          path: artifacts/build/native/binaryen-${{ matrix.rid }}
+          key: ${{ runner.os }}-cmake-${{ matrix.rid }}-${{ needs.check-version.outputs.binaryen_version }}-${{ hashFiles('eng/native/**') }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-${{ matrix.rid }}-${{ needs.check-version.outputs.binaryen_version }}-
+            ${{ runner.os }}-cmake-${{ matrix.rid }}-
+
+      - name: Build native (timeout 60 minutes)
+        run: ${{ matrix.cmd }}
+        timeout-minutes: 60
+
+      - name: Create archive
+        shell: bash
+        run: |
+          cd artifacts/native/${{ matrix.rid }}
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z a ../../../${{ matrix.rid }}.zip *
+          else
+            tar -czf ../../../${{ matrix.rid }}.tar.gz *
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.rid }}
+          path: |
+            ${{ matrix.rid }}.*
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: [check-version, build]
+    if: needs.check-version.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Checkout specific binaryen version
+        run: |
+          cd extern/binaryen
+          git checkout ${{ needs.check-version.outputs.binaryen_version }}
+
+      - name: Generate upstream info
+        run: |
+          cd extern/binaryen
+          TAG="$(git describe --tags --always --dirty || true)"
+          SHA="$(git rev-parse --short=12 HEAD || true)"
+          printf "binaryen-tag: %s\nbinaryen-commit: %s\n" "$TAG" "$SHA" > ../../UPSTREAM.txt
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Move artifacts to root
+        run: |
+          find artifacts -name "*.tar.gz" -o -name "*.zip" | while read file; do
+            mv "$file" .
+          done
+
+      - name: Get Binaryen license
+        run: |
+          cp extern/binaryen/LICENSE LICENSE-BINARYEN
+
+      - name: Create Release
+        uses: ncipollo/create-release@v1
+        with:
+          tag: ${{ needs.check-version.outputs.release_tag }}
+          name: "Binaryen Native Libraries ${{ needs.check-version.outputs.binaryen_version }}"
+          body: |
+            Native shared libraries and tools built from Binaryen ${{ needs.check-version.outputs.binaryen_version }}.
+            
+            ## Contents
+            - `libbinaryen.so` / `libbinaryen.dylib` / `binaryen.dll` - Shared library
+            - `wasm-opt` / `wasm-opt.exe` - WebAssembly optimizer CLI tool
+            
+            ## Platforms
+            - `linux-x64.tar.gz` - Linux x64
+            - `osx-arm64.tar.gz` - macOS Apple Silicon  
+            - `osx-x64.tar.gz` - macOS Intel
+            - `win-x64.zip` - Windows x64
+            
+            ## License
+            These binaries are built from the Binaryen project and are subject to the Apache 2.0 license.
+            See LICENSE-BINARYEN for details.
+            
+            ## Source
+            Built from: https://github.com/WebAssembly/binaryen/tree/${{ needs.check-version.outputs.binaryen_version }}
+          artifacts: |
+            linux-x64.tar.gz
+            osx-arm64.tar.gz  
+            osx-x64.tar.gz
+            win-x64.zip
+            LICENSE-BINARYEN
+            UPSTREAM.txt
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false

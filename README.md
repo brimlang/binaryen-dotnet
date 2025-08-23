@@ -59,6 +59,32 @@ You can also invoke `wasm-opt` directly from the package’s `runtimes/<rid>/nat
 └── ...
 ```
 
+## Native Library Release Process
+
+To improve CI performance, native shared libraries are built separately and published as GitHub releases:
+
+### Creating Native Library Releases
+
+Native libraries are built via the **Build Native Libraries** workflow (`.github/workflows/native-libraries.yaml`):
+
+1. **Manual trigger**: Go to Actions → "Build Native Libraries" → "Run workflow"
+2. **Automatic**: Runs monthly to check for new Binaryen versions  
+
+The workflow:
+- Builds native libraries for linux-x64, osx-arm64, osx-x64, and win-x64
+- Creates a release tagged as `binaryen-{version}` (e.g., `binaryen-version_123`)
+- Includes proper licensing information (LICENSE-BINARYEN, UPSTREAM.txt)
+- Only runs if the release doesn't already exist
+
+### How Main CI Uses Prebuilt Libraries
+
+The main CI workflow (`.github/workflows/ci.yaml`) automatically:
+1. Downloads prebuilt artifacts from the matching `binaryen-{version}` release
+2. Falls back to building natively if no prebuilt release is available
+3. Supports all platforms without long build times
+
+This reduces typical CI runs from ~60 minutes to ~5 minutes by reusing prebuilt libraries.
+
 ## Developer Quickstart
 
 This repo uses [mise](https://mise.jdx.dev/) for toolchain management.
