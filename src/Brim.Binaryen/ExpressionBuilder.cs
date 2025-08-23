@@ -157,6 +157,10 @@ public sealed class ExpressionBuilder
   public BinaryenExpression I32LtS(BinaryenExpression left, BinaryenExpression right) => 
     Binary(BinaryenOp.LtSInt32, left, right);
 
+  /// <summary>Creates an i32.gt_s expression.</summary>
+  public BinaryenExpression I32GtS(BinaryenExpression left, BinaryenExpression right) => 
+    Binary(BinaryenOp.GtSInt32, left, right);
+
   /// <summary>Creates an f32.add expression.</summary>
   public BinaryenExpression F32Add(BinaryenExpression left, BinaryenExpression right) => 
     Binary(BinaryenOp.AddFloat32, left, right);
