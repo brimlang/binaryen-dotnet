@@ -17,8 +17,102 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  native:
-    name: Build native (${{ matrix.rid }})
+  download-native:
+    name: Download prebuilt native libraries
+    runs-on: ubuntu-latest
+    outputs:
+      found_prebuilt: ${{ steps.download.outputs.found_prebuilt }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Get binaryen version
+        id: version
+        run: |
+          cd extern/binaryen
+          BINARYEN_VERSION=$(git describe --tags --exact-match HEAD 2>/dev/null || echo "unknown")
+          echo "binaryen_version=$BINARYEN_VERSION" >> $GITHUB_OUTPUT
+          echo "release_tag=binaryen-$BINARYEN_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download prebuilt libraries
+        id: download
+        continue-on-error: true
+        run: |
+          RELEASE_TAG="${{ steps.version.outputs.release_tag }}"
+          echo "Looking for release: $RELEASE_TAG"
+          
+          # Check if release exists and download artifacts
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Found release $RELEASE_TAG, downloading artifacts..."
+            gh release download "$RELEASE_TAG" --pattern "*.tar.gz" --pattern "*.zip"
+            
+            # Extract archives to proper artifact structure
+            mkdir -p artifacts/native
+            
+            for file in *.tar.gz; do
+              if [ -f "$file" ]; then
+                rid="${file%.tar.gz}"
+                mkdir -p "artifacts/native/$rid"
+                tar -xzf "$file" -C "artifacts/native/$rid"
+                echo "Extracted $file to artifacts/native/$rid"
+              fi
+            done
+            
+            for file in *.zip; do
+              if [ -f "$file" ]; then
+                rid="${file%.zip}"
+                mkdir -p "artifacts/native/$rid"
+                unzip -q "$file" -d "artifacts/native/$rid"
+                echo "Extracted $file to artifacts/native/$rid"
+              fi
+            done
+            
+            echo "found_prebuilt=true" >> $GITHUB_OUTPUT
+          else
+            echo "Release $RELEASE_TAG not found, will fall back to building"
+            echo "found_prebuilt=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload native artifacts
+        if: steps.download.outputs.found_prebuilt == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-linux-x64
+          path: artifacts/native/linux-x64/
+          if-no-files-found: error
+
+      - name: Upload native artifacts (osx-arm64)
+        if: steps.download.outputs.found_prebuilt == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-osx-arm64
+          path: artifacts/native/osx-arm64/
+          if-no-files-found: ignore
+
+      - name: Upload native artifacts (osx-x64)
+        if: steps.download.outputs.found_prebuilt == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-osx-x64
+          path: artifacts/native/osx-x64/
+          if-no-files-found: ignore
+
+      - name: Upload native artifacts (win-x64)
+        if: steps.download.outputs.found_prebuilt == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-win-x64
+          path: artifacts/native/win-x64/
+          if-no-files-found: ignore
+
+  native-fallback:
+    name: Build native fallback (${{ matrix.rid }})
+    needs: download-native
+    if: needs.download-native.outputs.found_prebuilt != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -26,16 +120,6 @@ jobs:
           - os: ubuntu-latest
             rid: linux-x64
             cmd: ./eng/native/build.sh --rid linux-x64
-          # macOS support temporarily disabled due to test crashes - see issue #X
-          # - os: macos-14
-          #   rid: osx-arm64
-          #   cmd: ./eng/native/build.sh --rid osx-arm64
-          # - os: macos-13
-          #   rid: osx-x64
-          #   cmd: ./eng/native/build.sh --rid osx-x64
-          # - os: windows-2022
-          #   rid: win-x64
-          #   cmd: ./eng/native/build.ps1 -Rid win-x64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -63,7 +147,8 @@ jobs:
 
   test:
     name: Test (${{ matrix.os }})
-    needs: native
+    needs: [download-native, native-fallback]
+    if: always() && (needs.download-native.outputs.found_prebuilt == 'true' || needs.native-fallback.result == 'success')
     strategy:
       fail-fast: false
       matrix:
@@ -126,7 +211,8 @@ jobs:
 
   pack:
     name: Pack NuGet
-    needs: [native, test]
+    needs: [download-native, native-fallback, test]
+    if: always() && needs.test.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
