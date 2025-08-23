@@ -1,4 +1,5 @@
 [tools]
+dotnet = "9"
 cmake = "4.1"
 ninja = "1.13"
 python = "3.10"
@@ -58,7 +59,12 @@ alias = "n"
 
 [tasks.pack]
 description = "Create NuGet packages into artifacts/package"
-run = "dotnet pack -c Release --output artifacts/package"
+depends = ["setup", "build-native"]
+run = [
+  "dotnet restore",
+  "dotnet build --no-restore -c Release",
+  "dotnet pack --no-build -c Release --output artifacts/package",
+]
 alias = "p"
 
 [tasks.rebuild]
