@@ -1,5 +1,5 @@
-using Brim.Binaryen.Interop;
 using Brim.Binaryen.Internal;
+using Brim.Binaryen.Interop;
 
 namespace Brim.Binaryen.Tests;
 
@@ -178,7 +178,7 @@ public class Smoke
 
     // Ensure module is validated before writing text
     Assert.True(module.Validate());
-    
+
     string text = module.WriteText();
     Assert.NotEmpty(text);
     Assert.Contains("test", text);
@@ -206,11 +206,11 @@ public class Smoke
     // Debug output to see actual values
     // These might be 0 in this version of Binaryen - what matters is that they're different
     Assert.NotEqual(addOp, subOp);
-    
+
     // Test a few more to ensure we get different values  
     int mulOp = BinaryenOp.MulInt32;
     int divOp = BinaryenOp.DivSInt32;
-    
+
     // At least some operations should be different from each other
     int[] ops = [addOp, subOp, clzOp, mulOp, divOp];
     int uniqueOps = ops.Distinct().Count();

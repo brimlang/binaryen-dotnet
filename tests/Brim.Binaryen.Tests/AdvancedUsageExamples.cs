@@ -161,12 +161,12 @@ public class AdvancedUsageExamples
     // Create a function that uses these operations
     // Drop intermediate values since they're not used
     BinaryenExpression body = expr.Block("test_ops",
-      expr.Drop(clz), 
-      expr.Drop(abs), 
-      expr.Drop(add), 
-      expr.Drop(sub), 
-      expr.Drop(mul), 
-      expr.Drop(div), 
+      expr.Drop(clz),
+      expr.Drop(abs),
+      expr.Drop(add),
+      expr.Drop(sub),
+      expr.Drop(mul),
+      expr.Drop(div),
       expr.Drop(eq),
       expr.I32Const(1) // return 1
     );
