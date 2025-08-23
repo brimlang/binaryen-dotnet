@@ -2,13 +2,15 @@
 
 **CRITICAL: Always follow these instructions exactly and only search for additional information if these instructions are incomplete or incorrect.**
 
+**IMPORTANT: Do NOT change the .NET target framework unless explicitly asked.**
+
 This repository provides .NET bindings for the Binaryen WebAssembly optimization toolkit. It includes managed P/Invoke wrappers, native Binaryen shared libraries, and the wasm-opt CLI tool for multiple platforms.
 
 ## Working Effectively
 
 ### Prerequisites
 - Install Clang/GCC (Linux/macOS) or Visual Studio (Windows) - REQUIRED for native builds
-- .NET 8.0+ SDK - REQUIRED for managed builds
+- .NET 9.0+ SDK - REQUIRED for managed builds
 - CMake and optionally Ninja for faster builds
 - Git with full history (not shallow clone)
 
@@ -100,7 +102,7 @@ Console.WriteLine($"Module serialized: {bytes.Length} bytes");
 
 ### Build Issues
 - **"Shallow clone lacks objects"**: Run `git fetch --unshallow` (only on shallow clones)
-- **"Lock type not found"**: Ensure using .NET 8 compatible code (use `object` instead of `Lock`)
+- **"Lock type not found"**: Ensure using .NET 9 compatible code (use `object` instead of `Lock`)
 - **"libbinaryen.so not found"**: Native build didn't complete or artifacts missing
 - **CMake cache issues**: Run `./eng/native/build.sh --clean` to wipe CMake cache
 - **Build takes too long**: Normal - native C++ compilation is slow, wait for completion
@@ -139,6 +141,7 @@ Use the explicit commands above if mise is not available.
 - **Native artifacts:** `artifacts/native/<rid>/` - Platform-specific binaries (libbinaryen.so/dylib/dll + wasm-opt)
 
 ### Configuration Files  
+- **AGENTS.md:** Repository purpose, entry points, and agent instructions
 - **mise.toml:** Task definitions and tool versions (optional)
 - **global.json:** .NET SDK version requirements
 - **Directory.Build.props:** Shared MSBuild properties
