@@ -62,15 +62,15 @@ internal static class BinaryenLoadGuard
     // Check the obvious path first: AppContext.BaseDirectory (where NuGet runtime assets land).
     string candidate = Path.Combine(baseDir, expectedName);
     bool exists = File.Exists(candidate);
-    
+
     string additionalInfo = "";
     if (exists)
     {
       try
       {
-        var fileInfo = new FileInfo(candidate);
+        FileInfo fileInfo = new FileInfo(candidate);
         additionalInfo = $"\nFile info: Size={fileInfo.Length} bytes, Modified={fileInfo.LastWriteTime}";
-        
+
         // Try to get more details about why loading failed
         if (inner is BadImageFormatException)
         {

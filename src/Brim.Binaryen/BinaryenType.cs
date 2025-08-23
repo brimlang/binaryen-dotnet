@@ -8,8 +8,7 @@ namespace Brim.Binaryen;
 public static class BinaryenType
 {
   /// <summary>Gets the 'none' type (void).</summary>
-  public static UIntPtr None
-  {
+  public static UIntPtr None {
     get
     {
       BinaryenLoadGuard.EnsureLoaded();
@@ -18,8 +17,7 @@ public static class BinaryenType
   }
 
   /// <summary>Gets the i32 type.</summary>
-  public static UIntPtr Int32
-  {
+  public static UIntPtr Int32 {
     get
     {
       BinaryenLoadGuard.EnsureLoaded();
@@ -28,8 +26,7 @@ public static class BinaryenType
   }
 
   /// <summary>Gets the i64 type.</summary>
-  public static UIntPtr Int64
-  {
+  public static UIntPtr Int64 {
     get
     {
       BinaryenLoadGuard.EnsureLoaded();
@@ -38,8 +35,7 @@ public static class BinaryenType
   }
 
   /// <summary>Gets the f32 type.</summary>
-  public static UIntPtr Float32
-  {
+  public static UIntPtr Float32 {
     get
     {
       BinaryenLoadGuard.EnsureLoaded();
@@ -48,8 +44,7 @@ public static class BinaryenType
   }
 
   /// <summary>Gets the f64 type.</summary>
-  public static UIntPtr Float64
-  {
+  public static UIntPtr Float64 {
     get
     {
       BinaryenLoadGuard.EnsureLoaded();
@@ -58,8 +53,7 @@ public static class BinaryenType
   }
 
   /// <summary>Gets the v128 type.</summary>
-  public static UIntPtr Vec128
-  {
+  public static UIntPtr Vec128 {
     get
     {
       BinaryenLoadGuard.EnsureLoaded();
@@ -68,8 +62,7 @@ public static class BinaryenType
   }
 
   /// <summary>Gets the funcref type.</summary>
-  public static UIntPtr Funcref
-  {
+  public static UIntPtr Funcref {
     get
     {
       BinaryenLoadGuard.EnsureLoaded();
@@ -78,8 +71,7 @@ public static class BinaryenType
   }
 
   /// <summary>Gets the externref type.</summary>
-  public static UIntPtr Externref
-  {
+  public static UIntPtr Externref {
     get
     {
       BinaryenLoadGuard.EnsureLoaded();
@@ -88,8 +80,7 @@ public static class BinaryenType
   }
 
   /// <summary>Gets the anyref type.</summary>
-  public static UIntPtr Anyref
-  {
+  public static UIntPtr Anyref {
     get
     {
       BinaryenLoadGuard.EnsureLoaded();
@@ -98,8 +89,7 @@ public static class BinaryenType
   }
 
   /// <summary>Gets the unreachable type.</summary>
-  public static UIntPtr Unreachable
-  {
+  public static UIntPtr Unreachable {
     get
     {
       BinaryenLoadGuard.EnsureLoaded();
@@ -108,8 +98,7 @@ public static class BinaryenType
   }
 
   /// <summary>Gets the auto type (for automatic type inference).</summary>
-  public static UIntPtr Auto
-  {
+  public static UIntPtr Auto {
     get
     {
       BinaryenLoadGuard.EnsureLoaded();

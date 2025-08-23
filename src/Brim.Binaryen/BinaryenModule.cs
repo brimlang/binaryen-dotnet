@@ -110,7 +110,7 @@ public sealed class BinaryenModule : IDisposable
     {
       nuint actualSize = Interop.Native.BinaryenModuleWriteText(_m, buf, BufferSize);
       if (actualSize == 0) return string.Empty;
-      
+
       // If the result is truncated, we might need a larger buffer
       if (actualSize >= BufferSize)
       {
@@ -118,11 +118,11 @@ public sealed class BinaryenModule : IDisposable
         Marshal.FreeHGlobal(buf);
         nuint size = Interop.Native.BinaryenModuleWriteText(_m, IntPtr.Zero, 0);
         if (size == 0) return string.Empty;
-        
+
         buf = Marshal.AllocHGlobal((nint)size);
         actualSize = Interop.Native.BinaryenModuleWriteText(_m, buf, size);
       }
-      
+
       return Marshal.PtrToStringUTF8(buf, (int)actualSize) ?? string.Empty;
     }
     finally
