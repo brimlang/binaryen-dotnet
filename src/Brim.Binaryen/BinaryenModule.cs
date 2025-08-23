@@ -19,8 +19,7 @@ public sealed class BinaryenModule : IDisposable
   /// <summary>
   /// Gets the expression builder for creating expressions in this module.
   /// </summary>
-  public ExpressionBuilder Expressions
-  {
+  public ExpressionBuilder Expressions {
     get
     {
       ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);
@@ -103,16 +102,16 @@ public sealed class BinaryenModule : IDisposable
   public string WriteText()
   {
     ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);
-    
+
     // Query size first
-    var size = Interop.Native.BinaryenModuleWriteText(_m, IntPtr.Zero, 0);
+    nuint size = Interop.Native.BinaryenModuleWriteText(_m, IntPtr.Zero, 0);
     if (size == 0) return string.Empty;
-    
+
     // Allocate and write
-    var buf = Marshal.AllocHGlobal((nint)size);
+    nint buf = Marshal.AllocHGlobal((nint)size);
     try
     {
-      var actualSize = Interop.Native.BinaryenModuleWriteText(_m, buf, size);
+      nuint actualSize = Interop.Native.BinaryenModuleWriteText(_m, buf, size);
       return Marshal.PtrToStringUTF8(buf, (int)actualSize) ?? string.Empty;
     }
     finally
@@ -126,19 +125,19 @@ public sealed class BinaryenModule : IDisposable
   /// <summary>
   /// Adds a function to the module.
   /// </summary>
-  public BinaryenFunction AddFunction(string name, UIntPtr paramTypes, UIntPtr resultTypes, 
+  public BinaryenFunction AddFunction(string name, UIntPtr paramTypes, UIntPtr resultTypes,
     UIntPtr[] localTypes, BinaryenExpression body)
   {
     ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);
-    
-    var localTypesPtr = IntPtr.Zero;
+
+    nint localTypesPtr = IntPtr.Zero;
     if (localTypes.Length > 0)
     {
       localTypesPtr = Marshal.AllocHGlobal(localTypes.Length * IntPtr.Size);
       try
       {
         Marshal.Copy(localTypes.Select(t => (IntPtr)t).ToArray(), 0, localTypesPtr, localTypes.Length);
-        var funcPtr = Interop.Native.BinaryenAddFunction(_m, name, paramTypes, resultTypes, 
+        nint funcPtr = Interop.Native.BinaryenAddFunction(_m, name, paramTypes, resultTypes,
           localTypesPtr, (uint)localTypes.Length, body.Handle);
         return new BinaryenFunction(funcPtr);
       }
@@ -149,7 +148,7 @@ public sealed class BinaryenModule : IDisposable
     }
     else
     {
-      var funcPtr = Interop.Native.BinaryenAddFunction(_m, name, paramTypes, resultTypes, 
+      nint funcPtr = Interop.Native.BinaryenAddFunction(_m, name, paramTypes, resultTypes,
         IntPtr.Zero, 0, body.Handle);
       return new BinaryenFunction(funcPtr);
     }
@@ -158,10 +157,7 @@ public sealed class BinaryenModule : IDisposable
   /// <summary>
   /// Adds a function to the module with no local variables.
   /// </summary>
-  public BinaryenFunction AddFunction(string name, UIntPtr paramTypes, UIntPtr resultTypes, BinaryenExpression body)
-  {
-    return AddFunction(name, paramTypes, resultTypes, [], body);
-  }
+  public BinaryenFunction AddFunction(string name, UIntPtr paramTypes, UIntPtr resultTypes, BinaryenExpression body) => AddFunction(name, paramTypes, resultTypes, [], body);
 
   /// <summary>
   /// Gets a function by name.
@@ -169,7 +165,7 @@ public sealed class BinaryenModule : IDisposable
   public BinaryenFunction? GetFunction(string name)
   {
     ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);
-    var funcPtr = Interop.Native.BinaryenGetFunction(_m, name);
+    nint funcPtr = Interop.Native.BinaryenGetFunction(_m, name);
     return funcPtr == IntPtr.Zero ? null : new BinaryenFunction(funcPtr);
   }
 
@@ -185,8 +181,7 @@ public sealed class BinaryenModule : IDisposable
   /// <summary>
   /// Gets the number of functions in the module.
   /// </summary>
-  public uint FunctionCount
-  {
+  public uint FunctionCount {
     get
     {
       ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);
@@ -202,7 +197,7 @@ public sealed class BinaryenModule : IDisposable
   public BinaryenExport AddFunctionExport(string internalName, string externalName)
   {
     ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);
-    var exportPtr = Interop.Native.BinaryenAddFunctionExport(_m, internalName, externalName);
+    nint exportPtr = Interop.Native.BinaryenAddFunctionExport(_m, internalName, externalName);
     return new BinaryenExport(exportPtr);
   }
 
@@ -212,7 +207,7 @@ public sealed class BinaryenModule : IDisposable
   public BinaryenExport AddGlobalExport(string internalName, string externalName)
   {
     ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);
-    var exportPtr = Interop.Native.BinaryenAddGlobalExport(_m, internalName, externalName);
+    nint exportPtr = Interop.Native.BinaryenAddGlobalExport(_m, internalName, externalName);
     return new BinaryenExport(exportPtr);
   }
 
@@ -222,7 +217,7 @@ public sealed class BinaryenModule : IDisposable
   public BinaryenExport AddMemoryExport(string internalName, string externalName)
   {
     ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);
-    var exportPtr = Interop.Native.BinaryenAddMemoryExport(_m, internalName, externalName);
+    nint exportPtr = Interop.Native.BinaryenAddMemoryExport(_m, internalName, externalName);
     return new BinaryenExport(exportPtr);
   }
 
@@ -234,7 +229,7 @@ public sealed class BinaryenModule : IDisposable
   public BinaryenGlobal AddGlobal(string name, UIntPtr type, bool mutable, BinaryenExpression init)
   {
     ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);
-    var globalPtr = Interop.Native.BinaryenAddGlobal(_m, name, type, mutable, init.Handle);
+    nint globalPtr = Interop.Native.BinaryenAddGlobal(_m, name, type, mutable, init.Handle);
     return new BinaryenGlobal(globalPtr);
   }
 
@@ -244,7 +239,7 @@ public sealed class BinaryenModule : IDisposable
   public BinaryenGlobal? GetGlobal(string name)
   {
     ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);
-    var globalPtr = Interop.Native.BinaryenGetGlobal(_m, name);
+    nint globalPtr = Interop.Native.BinaryenGetGlobal(_m, name);
     return globalPtr == IntPtr.Zero ? null : new BinaryenGlobal(globalPtr);
   }
 
@@ -272,8 +267,7 @@ public sealed class BinaryenModule : IDisposable
   /// <summary>
   /// Checks if the module has memory defined.
   /// </summary>
-  public bool HasMemory
-  {
+  public bool HasMemory {
     get
     {
       ObjectDisposedException.ThrowIf(_m == IntPtr.Zero, this);

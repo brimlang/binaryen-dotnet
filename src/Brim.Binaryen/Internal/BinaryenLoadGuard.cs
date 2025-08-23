@@ -9,7 +9,7 @@ namespace Brim.Binaryen.Internal;
 internal static class BinaryenLoadGuard
 {
   private static volatile bool _loaded;
-  private static readonly object _gate = new();
+  private static readonly Lock _gate = new();
 
   public static void EnsureLoaded()
   {

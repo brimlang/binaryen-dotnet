@@ -7,10 +7,7 @@ public readonly struct BinaryenFunction
 {
   internal readonly IntPtr Handle;
 
-  internal BinaryenFunction(IntPtr handle)
-  {
-    Handle = handle;
-  }
+  internal BinaryenFunction(IntPtr handle) => Handle = handle;
 
   public static implicit operator IntPtr(BinaryenFunction func) => func.Handle;
 }
@@ -22,10 +19,7 @@ public readonly struct BinaryenExport
 {
   internal readonly IntPtr Handle;
 
-  internal BinaryenExport(IntPtr handle)
-  {
-    Handle = handle;
-  }
+  internal BinaryenExport(IntPtr handle) => Handle = handle;
 
   public static implicit operator IntPtr(BinaryenExport export) => export.Handle;
 }
@@ -37,10 +31,7 @@ public readonly struct BinaryenGlobal
 {
   internal readonly IntPtr Handle;
 
-  internal BinaryenGlobal(IntPtr handle)
-  {
-    Handle = handle;
-  }
+  internal BinaryenGlobal(IntPtr handle) => Handle = handle;
 
   public static implicit operator IntPtr(BinaryenGlobal global) => global.Handle;
 }

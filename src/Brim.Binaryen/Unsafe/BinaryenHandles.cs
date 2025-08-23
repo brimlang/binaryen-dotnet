@@ -8,19 +8,14 @@ namespace Brim.Binaryen.Unsafe;
 public sealed class BinaryenFunctionHandle : SafeHandle
 {
   public BinaryenFunctionHandle() : base(IntPtr.Zero, ownsHandle: false) { }
-  
-  public BinaryenFunctionHandle(IntPtr handle) : base(handle, ownsHandle: false)
-  {
-    SetHandle(handle);
-  }
+
+  public BinaryenFunctionHandle(IntPtr handle) : base(handle, ownsHandle: false) => SetHandle(handle);
 
   public override bool IsInvalid => handle == IntPtr.Zero;
 
-  protected override bool ReleaseHandle()
-  {
+  protected override bool ReleaseHandle() =>
     // Functions are owned by the module and don't need explicit disposal
-    return true;
-  }
+    true;
 }
 
 /// <summary>
@@ -29,19 +24,14 @@ public sealed class BinaryenFunctionHandle : SafeHandle
 public sealed class BinaryenExpressionHandle : SafeHandle
 {
   public BinaryenExpressionHandle() : base(IntPtr.Zero, ownsHandle: false) { }
-  
-  public BinaryenExpressionHandle(IntPtr handle) : base(handle, ownsHandle: false)
-  {
-    SetHandle(handle);
-  }
+
+  public BinaryenExpressionHandle(IntPtr handle) : base(handle, ownsHandle: false) => SetHandle(handle);
 
   public override bool IsInvalid => handle == IntPtr.Zero;
 
-  protected override bool ReleaseHandle()
-  {
+  protected override bool ReleaseHandle() =>
     // Expressions are owned by the module and don't need explicit disposal
-    return true;
-  }
+    true;
 }
 
 /// <summary>

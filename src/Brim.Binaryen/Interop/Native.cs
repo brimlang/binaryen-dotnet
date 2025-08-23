@@ -312,22 +312,22 @@ internal static partial class Native
   // ========== Expression Creation ==========
 
   [LibraryImport("binaryen", StringMarshalling = StringMarshalling.Utf8)]
-  internal static partial IntPtr BinaryenBlock(IntPtr module, string? name, 
+  internal static partial IntPtr BinaryenBlock(IntPtr module, string? name,
     IntPtr[] children, uint numChildren, UIntPtr type);
 
   [LibraryImport("binaryen")]
-  internal static partial IntPtr BinaryenIf(IntPtr module, IntPtr condition, 
+  internal static partial IntPtr BinaryenIf(IntPtr module, IntPtr condition,
     IntPtr ifTrue, IntPtr ifFalse);
 
   [LibraryImport("binaryen", StringMarshalling = StringMarshalling.Utf8)]
   internal static partial IntPtr BinaryenLoop(IntPtr module, string? name, IntPtr body);
 
   [LibraryImport("binaryen", StringMarshalling = StringMarshalling.Utf8)]
-  internal static partial IntPtr BinaryenBreak(IntPtr module, string name, 
+  internal static partial IntPtr BinaryenBreak(IntPtr module, string name,
     IntPtr condition, IntPtr value);
 
   [LibraryImport("binaryen", StringMarshalling = StringMarshalling.Utf8)]
-  internal static partial IntPtr BinaryenCall(IntPtr module, string target, 
+  internal static partial IntPtr BinaryenCall(IntPtr module, string target,
     IntPtr[] operands, uint numOperands, UIntPtr returnType);
 
   [LibraryImport("binaryen")]
@@ -355,7 +355,7 @@ internal static partial class Native
   internal static partial IntPtr BinaryenBinary(IntPtr module, int op, IntPtr left, IntPtr right);
 
   [LibraryImport("binaryen")]
-  internal static partial IntPtr BinaryenSelect(IntPtr module, IntPtr condition, 
+  internal static partial IntPtr BinaryenSelect(IntPtr module, IntPtr condition,
     IntPtr ifTrue, IntPtr ifFalse);
 
   [LibraryImport("binaryen")]
@@ -391,19 +391,19 @@ internal static partial class Native
   // ========== Export Management ==========
 
   [LibraryImport("binaryen", StringMarshalling = StringMarshalling.Utf8)]
-  internal static partial IntPtr BinaryenAddFunctionExport(IntPtr module, 
+  internal static partial IntPtr BinaryenAddFunctionExport(IntPtr module,
     string internalName, string externalName);
 
   [LibraryImport("binaryen", StringMarshalling = StringMarshalling.Utf8)]
-  internal static partial IntPtr BinaryenAddTableExport(IntPtr module, 
+  internal static partial IntPtr BinaryenAddTableExport(IntPtr module,
     string internalName, string externalName);
 
   [LibraryImport("binaryen", StringMarshalling = StringMarshalling.Utf8)]
-  internal static partial IntPtr BinaryenAddMemoryExport(IntPtr module, 
+  internal static partial IntPtr BinaryenAddMemoryExport(IntPtr module,
     string internalName, string externalName);
 
   [LibraryImport("binaryen", StringMarshalling = StringMarshalling.Utf8)]
-  internal static partial IntPtr BinaryenAddGlobalExport(IntPtr module, 
+  internal static partial IntPtr BinaryenAddGlobalExport(IntPtr module,
     string internalName, string externalName);
 
   [LibraryImport("binaryen", StringMarshalling = StringMarshalling.Utf8)]
@@ -421,7 +421,7 @@ internal static partial class Native
   // ========== Global Management ==========
 
   [LibraryImport("binaryen", StringMarshalling = StringMarshalling.Utf8)]
-  internal static partial IntPtr BinaryenAddGlobal(IntPtr module, string name, 
+  internal static partial IntPtr BinaryenAddGlobal(IntPtr module, string name,
     UIntPtr type, [MarshalAs(UnmanagedType.Bool)] bool mutable, IntPtr init);
 
   [LibraryImport("binaryen", StringMarshalling = StringMarshalling.Utf8)]

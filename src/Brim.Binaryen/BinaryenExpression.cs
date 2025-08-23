@@ -7,49 +7,34 @@ public readonly struct BinaryenExpression
 {
   internal readonly IntPtr Handle;
 
-  internal BinaryenExpression(IntPtr handle)
-  {
-    Handle = handle;
-  }
+  internal BinaryenExpression(IntPtr handle) => Handle = handle;
 
   /// <summary>
   /// Gets the expression ID (type of expression).
   /// </summary>
-  public uint GetId()
-  {
-    return Interop.Native.BinaryenExpressionGetId(Handle);
-  }
+  public uint GetId() => Interop.Native.BinaryenExpressionGetId(Handle);
 
   /// <summary>
   /// Gets the type of this expression.
   /// </summary>
-  public UIntPtr GetExpressionType()
-  {
-    return Interop.Native.BinaryenExpressionGetType(Handle);
-  }
+  public UIntPtr GetExpressionType() => Interop.Native.BinaryenExpressionGetType(Handle);
 
   /// <summary>
   /// Sets the type of this expression.
   /// </summary>
-  public void SetType(UIntPtr type)
-  {
-    Interop.Native.BinaryenExpressionSetType(Handle, type);
-  }
+  public void SetType(UIntPtr type) => Interop.Native.BinaryenExpressionSetType(Handle, type);
 
   /// <summary>
   /// Prints this expression to stdout (for debugging).
   /// </summary>
-  public void Print()
-  {
-    Interop.Native.BinaryenExpressionPrint(Handle);
-  }
+  public void Print() => Interop.Native.BinaryenExpressionPrint(Handle);
 
   /// <summary>
   /// Creates a deep copy of this expression in the given module.
   /// </summary>
   public BinaryenExpression Copy(BinaryenModule module)
   {
-    var copied = Interop.Native.BinaryenExpressionCopy(Handle, module._m);
+    nint copied = Interop.Native.BinaryenExpressionCopy(Handle, module._m);
     return new BinaryenExpression(copied);
   }
 
