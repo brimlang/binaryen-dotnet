@@ -1,4 +1,5 @@
 using Brim.Binaryen.Interop;
+using Brim.Binaryen.Internal;
 
 namespace Brim.Binaryen.Tests;
 
@@ -8,6 +9,7 @@ public class Smoke
   [Fact]
   public void Can_Create_And_Dispose_Module()
   {
+    BinaryenLoadGuard.EnsureLoaded();
     nint m = Native.BinaryenModuleCreate();
     Assert.NotEqual(IntPtr.Zero, m);
     int ok = Native.BinaryenModuleValidate(m);

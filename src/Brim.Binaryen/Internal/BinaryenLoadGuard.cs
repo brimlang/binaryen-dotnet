@@ -62,6 +62,30 @@ internal static class BinaryenLoadGuard
     // Check the obvious path first: AppContext.BaseDirectory (where NuGet runtime assets land).
     string candidate = Path.Combine(baseDir, expectedName);
     bool exists = File.Exists(candidate);
+    
+    string additionalInfo = "";
+    if (exists)
+    {
+      try
+      {
+        var fileInfo = new FileInfo(candidate);
+        additionalInfo = $"\nFile info: Size={fileInfo.Length} bytes, Modified={fileInfo.LastWriteTime}";
+        
+        // Try to get more details about why loading failed
+        if (inner is BadImageFormatException)
+        {
+          additionalInfo += "\nThis is likely an architecture mismatch (e.g., trying to load arm64 library on x64 process or vice versa).";
+        }
+        else if (inner is DllNotFoundException)
+        {
+          additionalInfo += "\nThe file exists but .NET can't load it. This could be due to missing dependencies.";
+        }
+      }
+      catch
+      {
+        additionalInfo = "\n[Could not get additional file info]";
+      }
+    }
 
     string msg =
 $"""
@@ -70,7 +94,7 @@ Failed to load Binaryen native library: {reason}.
 Searched (first): {candidate}  {(exists ? "[FOUND]" : "[MISSING]")}
 Process:   OS={os}, Arch={arch}
 BaseDir:   {baseDir}
-Expected:  {expectedName}
+Expected:  {expectedName}{additionalInfo}
 
 If you're running from a consuming app:
  - Ensure the package 'Brim.Binaryen' is referenced by the app project (not only by a transitive library).
