@@ -1,3 +1,10 @@
+# CI workflow for Brim.Binaryen
+#
+# - Uses nbgv versioning to determine the required native library release
+# - Downloads all required native artifacts from the corresponding GitHub Release
+# - Fails with a clear message if any artifact is missing
+# - No fallback native build; maintainers must run the native-libraries workflow if artifacts are missing
+
 name: ci
 
 on:
@@ -21,141 +28,79 @@ jobs:
     name: Download prebuilt native libraries
     runs-on: ubuntu-latest
     outputs:
-      found_prebuilt: ${{ steps.download.outputs.found_prebuilt }}
+      nbgv_version: ${{ steps.nbgv.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
-      - name: Get binaryen version
-        id: version
+      - name: Get nbgv version
+        id: nbgv
         run: |
-          cd extern/binaryen
-          BINARYEN_VERSION=$(git describe --tags --exact-match HEAD 2>/dev/null || echo "unknown")
-          echo "binaryen_version=$BINARYEN_VERSION" >> $GITHUB_OUTPUT
-          echo "release_tag=binaryen-$BINARYEN_VERSION" >> $GITHUB_OUTPUT
+          VERSION=$(dotnet nbgv get-version --format json | jq -r .NuGetPackageVersion)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Download prebuilt libraries
+      - name: Download native artifacts from release
         id: download
-        continue-on-error: true
-        run: |
-          RELEASE_TAG="${{ steps.version.outputs.release_tag }}"
-          echo "Looking for release: $RELEASE_TAG"
-          
-          # Check if release exists and download artifacts
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Found release $RELEASE_TAG, downloading artifacts..."
-            gh release download "$RELEASE_TAG" --pattern "*.tar.gz" --pattern "*.zip"
-            
-            # Extract archives to proper artifact structure
-            mkdir -p artifacts/native
-            
-            for file in *.tar.gz; do
-              if [ -f "$file" ]; then
-                rid="${file%.tar.gz}"
-                mkdir -p "artifacts/native/$rid"
-                tar -xzf "$file" -C "artifacts/native/$rid"
-                echo "Extracted $file to artifacts/native/$rid"
-              fi
-            done
-            
-            for file in *.zip; do
-              if [ -f "$file" ]; then
-                rid="${file%.zip}"
-                mkdir -p "artifacts/native/$rid"
-                unzip -q "$file" -d "artifacts/native/$rid"
-                echo "Extracted $file to artifacts/native/$rid"
-              fi
-            done
-            
-            echo "found_prebuilt=true" >> $GITHUB_OUTPUT
-          else
-            echo "Release $RELEASE_TAG not found, will fall back to building"
-            echo "found_prebuilt=false" >> $GITHUB_OUTPUT
-          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_TAG="binaryen-${{ steps.nbgv.outputs.version }}"
+          echo "Looking for release: $RELEASE_TAG"
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Required native library release $RELEASE_TAG not found. Run the 'Build Native Libraries' workflow first."
+            exit 1
+          fi
+          gh release download "$RELEASE_TAG" --pattern "*.tar.gz" --pattern "*.zip"
+          mkdir -p artifacts/native
+          for file in *.tar.gz; do
+            if [ -f "$file" ]; then
+              rid="${file%.tar.gz}"
+              mkdir -p "artifacts/native/$rid"
+              tar -xzf "$file" -C "artifacts/native/$rid"
+              echo "Extracted $file to artifacts/native/$rid"
+            fi
+          done
+          for file in *.zip; do
+            if [ -f "$file" ]; then
+              rid="${file%.zip}"
+              mkdir -p "artifacts/native/$rid"
+              unzip -q "$file" -d "artifacts/native/$rid"
+              echo "Extracted $file to artifacts/native/$rid"
+            fi
+          done
+          # Check for all required RIDs
+          missing=0
+          for rid in linux-x64 osx-arm64 osx-x64 win-x64; do
+            if [ ! -d "artifacts/native/$rid" ] || [ -z "$(ls -A artifacts/native/$rid 2>/dev/null)" ]; then
+              echo "::error::Missing native artifact for $rid in release $RELEASE_TAG."
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::One or more required native artifacts are missing. Run the 'Build Native Libraries' workflow and publish a new release."
+            exit 1
+          fi
 
       - name: Upload native artifacts
-        if: steps.download.outputs.found_prebuilt == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: native-linux-x64
-          path: artifacts/native/linux-x64/
-          if-no-files-found: error
-
-      - name: Upload native artifacts (osx-arm64)
-        if: steps.download.outputs.found_prebuilt == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: native-osx-arm64
-          path: artifacts/native/osx-arm64/
-          if-no-files-found: ignore
-
-      - name: Upload native artifacts (osx-x64)
-        if: steps.download.outputs.found_prebuilt == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: native-osx-x64
-          path: artifacts/native/osx-x64/
-          if-no-files-found: ignore
-
-      - name: Upload native artifacts (win-x64)
-        if: steps.download.outputs.found_prebuilt == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: native-win-x64
-          path: artifacts/native/win-x64/
-          if-no-files-found: ignore
-
-  native-fallback:
-    name: Build native fallback (${{ matrix.rid }})
-    needs: download-native
-    if: needs.download-native.outputs.found_prebuilt != 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            rid: linux-x64
-            cmd: ./eng/native/build.sh --rid linux-x64
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Cache CMake build
-        uses: actions/cache@v3
-        with:
-          path: artifacts/build/native/binaryen-${{ matrix.rid }}
-          key: ${{ runner.os }}-cmake-${{ matrix.rid }}-${{ hashFiles('eng/native/**', 'extern/binaryen/**', 'mise.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-cmake-${{ matrix.rid }}-
-
-      - name: Build native
-        run: ${{ matrix.cmd }}
-
-      - name: Upload native artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: native-${{ matrix.rid }}
-          path: artifacts/native/${{ matrix.rid }}/
+          name: native-all
+          path: artifacts/native/
           if-no-files-found: error
 
   test:
     name: Test (${{ matrix.os }})
-    needs: [download-native, native-fallback]
-    if: always() && (needs.download-native.outputs.found_prebuilt == 'true' || needs.native-fallback.result == 'success')
+    needs: download-native
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             rid: linux-x64
-          # macOS support temporarily disabled due to test crashes - see issue #X
+          # macOS and Windows support can be enabled as needed
           # - os: macos-14
           #   rid: osx-arm64
           # - os: macos-13
@@ -178,8 +123,8 @@ jobs:
       - name: Download native artifact for this RID
         uses: actions/download-artifact@v4
         with:
-          name: native-${{ matrix.rid }}
-          path: artifacts/native/${{ matrix.rid }}
+          name: native-all
+          path: artifacts/native
 
       - name: Cache NuGet packages
         uses: actions/cache@v3
@@ -211,8 +156,8 @@ jobs:
 
   pack:
     name: Pack NuGet
-    needs: [download-native, native-fallback, test]
-    if: always() && needs.test.result == 'success'
+    needs: [download-native, test]
+    if: needs.test.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -229,16 +174,8 @@ jobs:
       - name: Download all native artifacts
         uses: actions/download-artifact@v4
         with:
+          name: native-all
           path: artifacts/native
-
-      - name: Normalize native artifact layout
-        run: |
-          shopt -s nullglob
-            for d in artifacts/native/native-*; do
-              rid="${d##*/native-}"
-              mkdir -p "artifacts/native/$rid"
-              rsync -a "$d/" "artifacts/native/$rid/"
-            done
 
       - name: Cache NuGet packages
         uses: actions/cache@v3

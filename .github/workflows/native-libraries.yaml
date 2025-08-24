@@ -1,16 +1,17 @@
+# Build and publish native shared libraries for Binaryen
+#
+# - Builds shared libraries for all supported platforms when a new version is detected
+# - Publishes them as GitHub Releases tagged as binaryen-<nbgv_version> (e.g., binaryen-123.0.2)
+# - Only runs if a release for the version does not already exist
+# - Should be triggered manually when updating Binaryen, or runs monthly to check for new versions
+# - Main CI workflow will consume these prebuilt libraries if available
+
 name: Build Native Libraries
 
 on:
   workflow_dispatch:
-    inputs:
-      binaryen_version:
-        description: 'Binaryen version tag (e.g., version_123)'
-        required: true
-        default: 'version_123'
-        type: string
   schedule:
-    # Run monthly to check for new binaryen versions
-    - cron: '0 0 1 * *'
+    - cron: "0 0 1 * *" # Monthly
 
 permissions:
   contents: write
@@ -25,36 +26,29 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should_build: ${{ steps.check.outputs.should_build }}
-      binaryen_version: ${{ steps.check.outputs.binaryen_version }}
+      nbgv_version: ${{ steps.nbgv.outputs.version }}
       release_tag: ${{ steps.check.outputs.release_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
-      - name: Check version and existing release
+      - name: Get nbgv version
+        id: nbgv
+        run: |
+          VERSION=$(dotnet nbgv get-version --format json | jq -r .NuGetPackageVersion)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if release exists
         id: check
         run: |
-          # Get the binaryen version from workflow input or from submodule
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            BINARYEN_VERSION="${{ github.event.inputs.binaryen_version }}"
-          else
-            cd extern/binaryen
-            BINARYEN_VERSION=$(git describe --tags --exact-match HEAD 2>/dev/null || echo "unknown")
-          fi
-          
-          echo "binaryen_version=$BINARYEN_VERSION" >> $GITHUB_OUTPUT
-          
-          RELEASE_TAG="binaryen-$BINARYEN_VERSION"
+          RELEASE_TAG="binaryen-${{ steps.nbgv.outputs.version }}"
           echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
-          
-          # Check if release already exists
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release $RELEASE_TAG already exists, skipping build"
             echo "should_build=false" >> $GITHUB_OUTPUT
           else
-            echo "Release $RELEASE_TAG does not exist, will build"
             echo "should_build=true" >> $GITHUB_OUTPUT
           fi
         env:
@@ -86,19 +80,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Checkout specific binaryen version
-        run: |
-          cd extern/binaryen
-          git checkout ${{ needs.check-version.outputs.binaryen_version }}
+          fetch-depth: 0
 
       - name: Cache CMake build
         uses: actions/cache@v3
         with:
           path: artifacts/build/native/binaryen-${{ matrix.rid }}
-          key: ${{ runner.os }}-cmake-${{ matrix.rid }}-${{ needs.check-version.outputs.binaryen_version }}-${{ hashFiles('eng/native/**') }}
+          key: ${{ runner.os }}-cmake-${{ matrix.rid }}-${{ needs.check-version.outputs.nbgv_version }}-${{ hashFiles('eng/native/**') }}
           restore-keys: |
-            ${{ runner.os }}-cmake-${{ matrix.rid }}-${{ needs.check-version.outputs.binaryen_version }}-
+            ${{ runner.os }}-cmake-${{ matrix.rid }}-${{ needs.check-version.outputs.nbgv_version }}-
             ${{ runner.os }}-cmake-${{ matrix.rid }}-
 
       - name: Build native (timeout 60 minutes)
@@ -109,7 +99,7 @@ jobs:
         shell: bash
         run: |
           cd artifacts/native/${{ matrix.rid }}
-          if [ "${{ runner.os }}" = "Windows" ]; then
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
             7z a ../../../${{ matrix.rid }}.zip *
           else
             tar -czf ../../../${{ matrix.rid }}.tar.gz *
@@ -133,11 +123,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
-      - name: Checkout specific binaryen version
+      - name: Get nbgv version
+        id: nbgv
         run: |
-          cd extern/binaryen
-          git checkout ${{ needs.check-version.outputs.binaryen_version }}
+          VERSION=$(dotnet nbgv get-version --format json | jq -r .NuGetPackageVersion)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate upstream info
         run: |
@@ -164,34 +156,34 @@ jobs:
       - name: Create Release
         uses: ncipollo/create-release@v1
         with:
-          tag: ${{ needs.check-version.outputs.release_tag }}
-          name: "Binaryen Native Libraries ${{ needs.check-version.outputs.binaryen_version }}"
+          tag: binaryen-${{ steps.nbgv.outputs.version }}
+          name: "Binaryen Native Libraries ${{ steps.nbgv.outputs.version }}"
           body: |
-            Native shared libraries and tools built from Binaryen ${{ needs.check-version.outputs.binaryen_version }}.
-            
+            Native shared libraries and tools built from Binaryen ${{ steps.nbgv.outputs.version }}.
+
             ## Contents
             - `libbinaryen.so` / `libbinaryen.dylib` / `binaryen.dll` - Shared library
             - `wasm-opt` / `wasm-opt.exe` - WebAssembly optimizer CLI tool
-            
+
             ## Platforms
             - `linux-x64.tar.gz` - Linux x64
-            - `osx-arm64.tar.gz` - macOS Apple Silicon  
+            - `osx-arm64.tar.gz` - macOS Apple Silicon
             - `osx-x64.tar.gz` - macOS Intel
             - `win-x64.zip` - Windows x64
-            
+
             ## License
             These binaries are built from the Binaryen project and are subject to the Apache 2.0 license.
             See LICENSE-BINARYEN for details.
-            
+
             ## Source
-            Built from: https://github.com/WebAssembly/binaryen/tree/${{ needs.check-version.outputs.binaryen_version }}
+            Built from: https://github.com/WebAssembly/binaryen/tree/${{ steps.nbgv.outputs.version }}
           artifacts: |
             linux-x64.tar.gz
-            osx-arm64.tar.gz  
+            osx-arm64.tar.gz
             osx-x64.tar.gz
             win-x64.zip
             LICENSE-BINARYEN
             UPSTREAM.txt
           token: ${{ secrets.GITHUB_TOKEN }}
-          draft: false
+          draft: true
           prerelease: false

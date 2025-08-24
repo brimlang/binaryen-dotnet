@@ -12,7 +12,9 @@ Brim.Binaryen provides .NET bindings for the Binaryen toolchain:
 * Prebuilt native `libbinaryen` shared library (per RID)
 * The `wasm-opt` executable, for CLI-style optimization
 
+
 This package is maintained by the Brim project, but is usable in any .NET application that needs Binaryen’s optimization or codegen APIs.
+
 
 ## Getting Started
 
@@ -59,6 +61,7 @@ You can also invoke `wasm-opt` directly from the package’s `runtimes/<rid>/nat
 └── ...
 ```
 
+
 ## Native Library Release Process
 
 To improve CI performance, native shared libraries are built separately and published as GitHub releases:
@@ -68,86 +71,71 @@ To improve CI performance, native shared libraries are built separately and publ
 Native libraries are built via the **Build Native Libraries** workflow (`.github/workflows/native-libraries.yaml`):
 
 1. **Manual trigger**: Go to Actions → "Build Native Libraries" → "Run workflow"
-2. **Automatic**: Runs monthly to check for new Binaryen versions  
+2. **Automatic**: Runs monthly to check for new Binaryen versions
 
 The workflow:
 - Builds native libraries for linux-x64, osx-arm64, osx-x64, and win-x64
-- Creates a release tagged as `binaryen-{version}` (e.g., `binaryen-version_123`)
+- Creates a release tagged as `binaryen-<nbgv_version>` (e.g., `binaryen-123.0.2`)
 - Includes proper licensing information (LICENSE-BINARYEN, UPSTREAM.txt)
 - Only runs if the release doesn't already exist
 
 ### How Main CI Uses Prebuilt Libraries
 
-The main CI workflow (`.github/workflows/ci.yaml`) automatically:
-1. Downloads prebuilt artifacts from the matching `binaryen-{version}` release
-2. Falls back to building natively if no prebuilt release is available
+The main CI workflow (`.github/workflows/ci.yaml`) **requires** prebuilt native libraries:
+1. Downloads prebuilt artifacts from the matching `binaryen-<nbgv_version>` release
+2. **Fails with a clear error if any required artifact is missing** (no fallback native build in CI)
 3. Supports all platforms without long build times
 
 This reduces typical CI runs from ~60 minutes to ~5 minutes by reusing prebuilt libraries.
 
+
 ## Developer Quickstart
 
-This repo uses [mise](https://mise.jdx.dev/) for toolchain management.
+This repo uses [mise](https://mise.jdx.dev/) for toolchain management (optional, but recommended).
 
-**Prequisites:**
-  You need to have Clang (or gcc) installed on Linux/macOS, or Visual Studio on Windows.
+**Prerequisites:**
+- .NET 9.0+ SDK
+- CMake
+- Clang/GCC (Linux/macOS) or Visual Studio (Windows)
+- Git with full history (not shallow clone)
 
+**Critical:**
+- Always follow the build and test sequence in `.github/copilot-instructions.md`.
+- Always run native build scripts before managed builds.
+- **NEVER CANCEL** native build commands; they may take up to 60 minutes.
+- Always specify explicit RID (`-r <rid>`) when running tests locally.
+- Do **not** change the .NET target framework unless explicitly asked.
+- Always run `dotnet format <project>` before committing changes.
 
-1. **Install [mise](https://mise.jdx.dev/)**
-   Follow the instructions for your platform.
+**Setup steps:**
 
-   * Linux/macOS:
-
-     ```bash
-     curl https://mise.run | sh
-     ```
-
-   * Windows (PowerShell):
-
-     ```powershell
-     irm get.mise.jdx.dev | iex
-     ```
-
+1. **Install [mise](https://mise.jdx.dev/)** (optional, for task shortcuts)
 2. **Clone**
-
    ```bash
    git clone https://github.com/brimlang/binaryen-dotnet.git
    cd binaryen-dotnet
    ```
-
-3. **Run the build + tests using mise tasks**
-
-   ```bash
-   mise install
-
-   # Initialize submodules, etc.
-   mise run setup
-
-   # Build native Binaryen for your platform - alias bn
-   mise run build-native
-
-   # Build managed bindings - alias bm
-   # Pass -c Release for release build
-   mise run build-manage
-
-   # Run unit tests (includes smoke tests of wasm-opt + Binaryen interop)
-   mise run test
-   ```
-
+3. **Run the build + tests**
+   - Using mise tasks (recommended):
+     ```bash
+     mise install
+     mise run setup
+     mise run build-native
+     mise run build-managed
+     mise run test
+     ```
+   - Or follow the manual sequence in `.github/copilot-instructions.md`.
 4. **Pack the NuGet package (local)**
-
    ```bash
    mise run pack
    ```
-
-5. Clean Slate
-
-  ```bash
-  mise run nuke
-  ```
-
+5. **Clean Slate**
+   ```bash
+   mise run nuke
+   ```
 
 NuGet packages land in `artifacts/package/release/`.
+
 
 
 ## Contributing
@@ -159,12 +147,14 @@ NuGet packages land in `artifacts/package/release/`.
 
 ---
 
+
 ## Versioning
 
 This repo uses [Nerdbank.GitVersioning (nbgv)](https://github.com/dotnet/Nerdbank.GitVersioning).
 Package versions are derived from Git tags and commit history.
 
 ---
+
 
 ## License and Provenance
 
@@ -175,6 +165,7 @@ When distributing or consuming this package, you must comply with both licenses.
 
 ---
 
+
 ## Status
 
 * ✅ Basic bring-up complete (native builds + bindings)
@@ -183,12 +174,14 @@ When distributing or consuming this package, you must comply with both licenses.
 
 ---
 
+
 ## Links
 
 * [Binaryen upstream](https://github.com/WebAssembly/binaryen)
 * [Brim project](https://github.com/brimlang)
 
 ---
+
 
 ## THIRD-PARTY-NOTICES
 

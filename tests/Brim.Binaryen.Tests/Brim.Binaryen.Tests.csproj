@@ -7,11 +7,19 @@
   </PropertyGroup>
 
   <!-- Explicitly detect the runtime if not set -->
+  <!-- Only x64 is supported for Linux/Windows. Extend if ARM64 support is added. -->
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
+    <!-- macOS: Apple Silicon vs Intel -->
     <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('OSX')) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'Arm64'">osx-arm64</RuntimeIdentifier>
     <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('OSX')) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) != 'Arm64'">osx-x64</RuntimeIdentifier>
-    <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux-x64</RuntimeIdentifier>
-    <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('Windows'))">win-x64</RuntimeIdentifier>
+    <!-- Linux: Only x64 supported -->
+    <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('Linux')) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'X64'">linux-x64</RuntimeIdentifier>
+    <!-- Windows: Only x64 supported -->
+    <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('Windows')) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'X64'">win-x64</RuntimeIdentifier>
+    <!-- Error if unsupported platform -->
+    <Error Condition="'$(RuntimeIdentifier)' == ''">
+      <Text>Unsupported platform or architecture. Please specify a supported RuntimeIdentifier (linux-x64, osx-arm64, osx-x64, win-x64).</Text>
+    </Error>
   </PropertyGroup>
   
   <!-- Debug: Show what RuntimeIdentifier we detected -->
