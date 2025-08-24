@@ -35,10 +35,18 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Setup environment
+        uses: step-security/mise-action@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # version: 2025.8.0        # Pin a version if you want
+          install: true
+          cache: true
+      - run: mise run setup
+
       - name: Get nbgv version
         id: nbgv
         run: |
-          dotnet tool restore
           VERSION=$(dotnet nbgv get-version --format json | jq -r .NuGetPackageVersion)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -125,6 +133,15 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Setup environment
+        uses: step-security/mise-action@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # version: 2025.8.0        # Pin a version if you want
+          install: true
+          cache: true
+      - run: mise run setup
 
       - name: Get nbgv version
         id: nbgv
