@@ -135,7 +135,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup environment
-        uses: step-security/mise-action@v2
+        uses: jdx/mise-action@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # version: 2025.8.0        # Pin a version if you want
