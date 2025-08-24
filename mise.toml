@@ -9,10 +9,16 @@ description = "Install native tools + restore .NET dependencies"
 run = [
   "mise install",                # ensure all pinned tools are installed
   "git submodule update --init", # ensure extern/binaryen is present
-  "dotnet restore",
+  "dotnet tool restore",         # restore any dotnet tools
+  "dotnet restore",              # restore all nuget dependencies
 ]
 alias = "s"
-sources = ["mise.toml", ".gitmodules"]
+sources = [
+  "mise.toml",
+  ".gitmodules",
+  "Directory.Build.props",
+  ".config/dotnet-tools.json",
+]
 outputs = { auto = true }
 
 [tasks.build-native]

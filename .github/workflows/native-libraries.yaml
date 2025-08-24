@@ -38,6 +38,7 @@ jobs:
       - name: Get nbgv version
         id: nbgv
         run: |
+          dotnet tool restore
           VERSION=$(dotnet nbgv get-version --format json | jq -r .NuGetPackageVersion)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
