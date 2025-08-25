@@ -39,7 +39,6 @@ jobs:
         uses: jdx/mise-action@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # version: 2025.8.0        # Pin a version if you want
           install: true
           cache: true
       - run: mise run setup
@@ -80,9 +79,9 @@ jobs:
           - os: macos-13
             rid: osx-x64
             cmd: ./eng/native/build.sh --rid osx-x64
-          - os: windows-2022
-            rid: win-x64
-            cmd: ./eng/native/build.ps1 -Rid win-x64
+          # - os: windows-2022
+          #   rid: win-x64
+          #   cmd: ./eng/native/build.ps1 -Rid win-x64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -170,37 +169,39 @@ jobs:
         run: |
           cp extern/binaryen/LICENSE LICENSE-BINARYEN
 
-      - name: Create Release
-        uses: ncipollo/create-release@v1
-        with:
-          tag: binaryen-${{ steps.nbgv.outputs.version }}
-          name: "Binaryen Native Libraries ${{ steps.nbgv.outputs.version }}"
-          body: |
-            Native shared libraries and tools built from Binaryen ${{ steps.nbgv.outputs.version }}.
+      - name: Create Release Notes
+        run: |
+          cat > release-notes.md <<EOF
+          Native shared libraries and tools built from Binaryen ${{ steps.nbgv.outputs.version }}.
 
-            ## Contents
-            - `libbinaryen.so` / `libbinaryen.dylib` / `binaryen.dll` - Shared library
-            - `wasm-opt` / `wasm-opt.exe` - WebAssembly optimizer CLI tool
+          ## Contents
+          - `libbinaryen.so` / `libbinaryen.dylib` / `binaryen.dll` - Shared library
+          - `wasm-opt` / `wasm-opt.exe` - WebAssembly optimizer CLI tool
 
-            ## Platforms
-            - `linux-x64.tar.gz` - Linux x64
-            - `osx-arm64.tar.gz` - macOS Apple Silicon
-            - `osx-x64.tar.gz` - macOS Intel
-            - `win-x64.zip` - Windows x64
+          ## Platforms
+          - `linux-x64.tar.gz` - Linux x64
+          - `osx-arm64.tar.gz` - macOS Apple Silicon
+          - `osx-x64.tar.gz` - macOS Intel
+          - `win-x64.zip` - Windows x64 - FUTURE
 
-            ## License
-            These binaries are built from the Binaryen project and are subject to the Apache 2.0 license.
-            See LICENSE-BINARYEN for details.
+          ## License
+          These binaries are built from the Binaryen project and are subject to the Apache 2.0 license.
+          See LICENSE-BINARYEN for details.
 
-            ## Source
-            Built from: https://github.com/WebAssembly/binaryen/tree/${{ steps.nbgv.outputs.version }}
-          artifacts: |
-            linux-x64.tar.gz
-            osx-arm64.tar.gz
-            osx-x64.tar.gz
-            win-x64.zip
-            LICENSE-BINARYEN
-            UPSTREAM.txt
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
+          ## Source
+          Built from: https://github.com/WebAssembly/binaryen/tree/${{ steps.nbgv.outputs.version }}
+          EOF
+
+      - name: Create Release with gh CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create binaryen-${{ steps.nbgv.outputs.version }} \
+            linux-x64.tar.gz \
+            osx-arm64.tar.gz \
+            osx-x64.tar.gz \
+            LICENSE-BINARYEN \
+            UPSTREAM.txt \
+            --title "Binaryen Native Libraries ${{ steps.nbgv.outputs.version }}" \
+            --notes-file release-notes.md \
+            --draft
