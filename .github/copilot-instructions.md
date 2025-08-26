@@ -42,7 +42,7 @@ git fetch --unshallow  # Only if you see "Shallow clone lacks objects" errors
 ```bash
 ./eng/native/build.sh --clean     # Wipe CMake cache and rebuild from scratch
 ./eng/native/build.sh --no-tools  # Build library only, skip wasm-opt
-./eng/native/build.sh --rid linux-x64  # Explicit target platform  
+./eng/native/build.sh --rid linux-x64  # Explicit target platform
 ```
 
 ```bash
@@ -61,7 +61,7 @@ dotnet test tests/Brim.Binaryen.Tests -r linux-x64 --verbosity minimal
 
 # For other platforms use:
 # -r osx-arm64    (macOS Apple Silicon)
-# -r osx-x64      (macOS Intel)  
+# -r osx-x64      (macOS Intel)
 # -r win-x64      (Windows)
 ```
 
@@ -110,7 +110,7 @@ Console.WriteLine($"Module serialized: {bytes.Length} bytes");
 - **Build takes too long**: Normal - native C++ compilation is slow, wait for completion
 - **Windows build issues**: The PowerShell script is untested - prefer Linux/macOS for development
 
-### Test Issues  
+### Test Issues
 - **Tests fail with library not found**: Must use explicit RID (`-r linux-x64`) for local testing and ensure native build completed
 - **Tests hang**: Check that native artifacts exist in `artifacts/native/linux-x64/`
 - **Platform-specific test failures**: Use correct RID for your platform (linux-x64, osx-arm64, osx-x64, win-x64)
@@ -123,7 +123,7 @@ If mise is available, you can use task shortcuts:
 mise install          # Install tools
 mise run setup         # Initialize submodules + restore
 mise run build-native  # Build native (alias: bn)
-mise run build-managed # Build managed (alias: bm)  
+mise run build-managed # Build managed (alias: bm)
 mise run test          # Run tests (alias: t)
 mise run pack          # Create packages (alias: p)
 mise run nuke          # Clean everything (alias: n)
@@ -142,7 +142,7 @@ Use the explicit commands above if mise is not available.
 - **Build outputs:** `artifacts/` - Ignored by git, contains native libraries and packages
 - **Native artifacts:** `artifacts/native/<rid>/` - Platform-specific binaries (libbinaryen.so/dylib/dll + wasm-opt)
 
-### Configuration Files  
+### Configuration Files
 - **AGENTS.md:** Repository purpose, entry points, and agent instructions
 - **mise.toml:** Task definitions and tool versions (optional)
 - **global.json:** .NET SDK version requirements
@@ -164,8 +164,8 @@ Use the explicit commands above if mise is not available.
 
 ### Quick Commands (all validated)
 - Git submodule init: ~30-120 seconds (depends on network)
-- Managed restore: ~2-5 seconds  
-- Managed build: ~3-5 seconds  
+- Managed restore: ~2-5 seconds
+- Managed build: ~3-5 seconds
 - Tests: ~5 seconds
 - Packaging: ~3 seconds
 - Format check: ~1-2 seconds
@@ -173,17 +173,21 @@ Use the explicit commands above if mise is not available.
 ### Full Developer Workflow Timing
 Complete first-time setup (validated sequence):
 1. Submodule init: ~60 seconds
-2. Native build: ~8 minutes  
+2. Native build: ~8 minutes
 3. Managed restore: ~3 seconds
 4. Managed build: ~5 seconds
-5. Tests: ~5 seconds  
+5. Tests: ~5 seconds
 6. Total: **~9 minutes for complete setup**
 
+
 ## CI/CD Integration Notes
-- The repository uses `.github/workflows/ci.yaml` for automated builds
-- CI builds native libraries on multiple platforms (linux-x64, osx-arm64, etc.)
-- Tests run without explicit RID specification (handled automatically by CI matrix)
-- Packages are published to GitHub Packages (main branch) and NuGet.org (version tags)
+- The repository uses `.github/workflows/ci.yaml` for automated builds.
+- **CI/CD expects all native libraries to be present as GitHub Release assets tagged as `binaryen-<nbgv_version>`.**
+- If any required native artifact is missing, CI will fail with a clear error. Maintainers must run the "Build Native Libraries" workflow (`.github/workflows/native-libraries.yaml`) and publish a new release.
+- No fallback native build is performed in CI.
+- The versioning scheme for native libraries and managed packages is unified and derived from [Nerdbank.GitVersioning](https://github.com/dotnet/Nerdbank.GitVersioning).
+- Tests run without explicit RID specification (handled automatically by CI matrix).
+- Packages are published to GitHub Packages (main branch) and NuGet.org (version tags).
 
 ## Troubleshooting
 
@@ -196,7 +200,7 @@ Complete first-time setup (validated sequence):
 
 ### When Tests Fail
 1. Ensure native build completed successfully
-2. Always specify RID: `-r linux-x64` 
+2. Always specify RID: `-r linux-x64`
 3. Check that native artifacts exist in `artifacts/native/<rid>/`
 4. Verify the native library loads: check for DLL/shared library loading errors
 

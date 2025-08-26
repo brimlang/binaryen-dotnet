@@ -1,46 +1,41 @@
 [tools]
 dotnet = "9"
-cmake = "4.1"
-ninja = "1.13"
-python = "3.10"
+gh = "latest"
+
+[tasks."setup:mise"]
+description = "Install the pinned tools via mise"
+run = "mise install"
+alias = "sm"
+sources = ["mise.toml"]
+outputs = { auto = true }
+wait_for = ["nuke"]
+
+[tasks."setup:dotnet"]
+description = "Restore .NET dependencies"
+run = [
+  "dotnet tool restore", # restore any dotnet tools
+  "dotnet restore",      # restore all nuget dependencies
+]
+alias = "sd"
+wait_for = ["nuke", "clean"]
 
 [tasks.setup]
-description = "Install native tools + restore .NET dependencies"
-run = [
-  "mise install",                # ensure all pinned tools are installed
-  "git submodule update --init", # ensure extern/binaryen is present
-  "dotnet restore",
-]
+description = "Setup the environment"
+depends = ["setup:mise", "setup:dotnet", "setup:binaryen-shared"]
+wait_for = ["nuke", "clean"]
 alias = "s"
-sources = ["mise.toml", ".gitmodules"]
-outputs = { auto = true }
 
-[tasks.build-native]
-description = "Build native Binaryen for current host"
-run = "./eng/native/build.sh"
-run_windows = "pwsh -NoLogo -File eng/native/build.ps1"
-sources = [
-  "eng/native/build.sh",
-  "eng/native/build.ps1",
-  "extern/binaryen/CMakeLists.txt",
-  "extern/binaryen/src/**",
-  "extern/binaryen/third_party/**",
-]
-outputs = ["artifacts/native/**/libbinaryen.*", "artifacts/native/**/wasm-opt*"]
-alias = "bn"
-depends = ["setup"]
-
-[tasks.build-managed]
+[tasks.build]
 description = "Build .NET managed code"
-run = "dotnet build"
-alias = "bm"
-depends = ["setup", "build-native"]
+run = "dotnet build --no-restore -p:GeneratePackageOnBuild=false"
+alias = "b"
+depends = ["setup"]
 
 [tasks.test]
 description = "Run tests for current runtime or pass -r <RID>"
-run = "dotnet test --no-build --verbosity minimal"
+run = "dotnet test --no-build --configuration Release --verbosity minimal --logger \"trx;LogFilePrefix=test-results\""
 alias = "t"
-depends = ["setup", "build-native", "build-managed"]
+depends = ["build --configuration Release"]
 
 [tasks.clean]
 description = "Run dotnet clean on all projects"
@@ -48,28 +43,22 @@ run = "dotnet clean"
 alias = "c"
 
 [tasks.nuke]
-description = "Delete all artifacts and reset extern/binaryen submodule"
-run = [
-  "rm -rf artifacts",
-  "git submodule deinit -f extern/binaryen || true",
-  "rm -rf extern/binaryen",
-  "git submodule update --init extern/binaryen",
-]
+description = "Delete all artifacts"
+run = ["rm -rf artifacts"]
 alias = "n"
 
 [tasks.pack]
 description = "Create NuGet packages into artifacts/package"
-depends = ["setup", "build-native"]
-run = [
-  "dotnet restore",
-  "dotnet build --no-restore -c Release",
-  "dotnet pack --no-build -c Release --output artifacts/package",
-]
+depends = ["setup", "build --configuration Release"]
+run = "dotnet pack --no-restore --no-build -c Release --output artifacts/package"
 alias = "p"
 
 [tasks.rebuild]
-description = "Nuke → setup → native → managed → test"
-depends = ["nuke", "setup", "build-native", "build-managed", "test"]
-# no run: depends-only meta task
-outputs = { auto = true }
-alias = "rb"
+description = "Clean and build the solution"
+depends = ["clean", "build --configuration Release"]
+alias = "r"
+
+[tasks.fresh]
+description = "Nuke, build and test"
+depends = ["nuke", "test"]
+alias = "fr"
