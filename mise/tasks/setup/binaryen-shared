@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+#MISE description="Fetch and extract Binaryen shared libraries"
+#MISE alias="sbs"
+#MISE sources=["mise.toml", "artifacts/native"]
+#MISE outputs={auto = true}
+#MISE wait_for=["nuke", "clean"]
+
+mkdir -p artifacts/native
+gh release \
+  --repo brimlang/binaryen-shared \
+  download \
+  binaryen-version_123-0.0 \
+  --pattern 'binaryen-all.tar.gz' \
+  --dir artifacts/ \
+  --skip-existing
+tar -xzf artifacts/binaryen-all.tar.gz -C artifacts/native
+for f in artifacts/native/*.tar.gz; do
+  d="artifacts/native/$(basename "$f" .tar.gz)"
+  echo "extracting $f to $d"
+  mkdir -p "$d"
+  tar -xzf "$f" -C "$d"
+done
+mkdir -p artifacts/native/win-x64
+echo "extracting artifacts/native/win-x64.zip to artifacts/native/win-x64"
+unzip -o -qq artifacts/native/win-x64.zip -d artifacts/native/win-x64
+
+# vim: ts=2 sw=2 filetype=sh

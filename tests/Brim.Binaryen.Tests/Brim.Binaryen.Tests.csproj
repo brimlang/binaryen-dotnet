@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RuntimeIdentifiers>linux-x64;osx-arm64;osx-x64;win-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>linux-x64;osx-arm64;win-x64</RuntimeIdentifiers>
     <UseCurrentRuntimeIdentifier>true</UseCurrentRuntimeIdentifier>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -11,7 +11,6 @@
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
     <!-- macOS: Apple Silicon vs Intel -->
     <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('OSX')) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'Arm64'">osx-arm64</RuntimeIdentifier>
-    <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('OSX')) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) != 'Arm64'">osx-x64</RuntimeIdentifier>
     <!-- Linux: Only x64 supported -->
     <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('Linux')) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'X64'">linux-x64</RuntimeIdentifier>
     <!-- Windows: Only x64 supported -->
@@ -21,7 +20,7 @@
       <Text>Unsupported platform or architecture. Please specify a supported RuntimeIdentifier (linux-x64, osx-arm64, osx-x64, win-x64).</Text>
     </Error>
   </PropertyGroup>
-  
+
   <!-- Debug: Show what RuntimeIdentifier we detected -->
   <Target Name="ShowRuntimeIdentifier" BeforeTargets="Build">
     <Message Text="RuntimeIdentifier: $(RuntimeIdentifier)" Importance="high" />
@@ -46,27 +45,21 @@
 
   <!-- Linux -->
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
-    <None Include="$(MSBuildProjectDirectory)/../../artifacts/native/linux-x64/*"
+    <None Include="$(MSBuildProjectDirectory)/../../artifacts/native/linux-x64/**/*"
           CopyToOutputDirectory="PreserveNewest"
           Link="%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- macOS -->
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">
-    <None Include="$(MSBuildProjectDirectory)/../../artifacts/native/osx-arm64/*"
-          CopyToOutputDirectory="PreserveNewest"
-          Link="%(Filename)%(Extension)" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64'">
-    <None Include="$(MSBuildProjectDirectory)/../../artifacts/native/osx-x64/*"
+    <None Include="$(MSBuildProjectDirectory)/../../artifacts/native/osx-arm64/**/*"
           CopyToOutputDirectory="PreserveNewest"
           Link="%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- Windows -->
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
-    <None Include="$(MSBuildProjectDirectory)\..\..\artifacts\native\win-x64\*"
+    <None Include="$(MSBuildProjectDirectory)\..\..\artifacts\native\win-x64\**\*"
           CopyToOutputDirectory="PreserveNewest"
           Link="%(Filename)%(Extension)" />
   </ItemGroup>
