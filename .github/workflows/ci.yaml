@@ -28,12 +28,12 @@ jobs:
           - os: ubuntu-latest
             rid: linux-x64
           # macOS and Windows support can be enabled as needed
-          - os: macos-14
-            rid: osx-arm64
+          # - os: macos-14
+          #   rid: osx-arm64
           # - os: macos-13
           #   rid: osx-x64
-          - os: windows-2022
-            rid: win-x64
+          # - os: windows-2022
+          #   rid: win-x64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
